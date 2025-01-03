@@ -10,10 +10,14 @@ import matplotlib.pyplot as plt
 import copy
 import os
 from ax.utils.notebook.plotting import init_notebook_plotting, render
+from pathlib import Path
+from submitit import AutoExecutor
+import sys
 loc="/home/henryll/Documents/Experimental_data/Jamie/set1/"
+loc="/users/hll537/Experimental_data/jamie/set1"
 files =os.listdir(loc)
 frequencies=[2.98, 3.99, 7.99]
-
+run=int(sys.argv[1])
 
 input_params={
     "2.98":{
@@ -167,19 +171,20 @@ ax_client.create_experiment(
 paralell=ax_client.get_max_parallelism()
 non_para_iterations=paralell[0][0]
 directory=os.getcwd()
-executor = AutoExecutor(folder=os.path.join(dir, "tmp_tests")) 
+executor = AutoExecutor(folder=os.path.join(directory, "tmp_tests")) 
 executor.update_parameters(timeout_min=60) # Timeout of the slurm job. Not including slurm scheduling delay.
 
-executor.update_parameters(cpus_per_task=1)
+executor.update_parameters(cpus_per_task=2)
 executor.update_parameters(slurm_partition="nodes")
 executor.update_parameters(slurm_job_name="mo_test")
 executor.update_parameters(slurm_account="chem-electro-2024")
-
+executor.update_parameters(mem_gb=2)
 objectives = ax_client.experiment.optimization_config.objective.objectives
 all_metrics=[objectives[x].metric for x in range(0, len(objectives))]
 all_keys=[vars(x)["_name"] for x in all_metrics]
 metric_dict=dict(zip(all_keys, all_metrics))
-combinations=list(itertools.combinations(keys, 2))
+combinations=list(itertools.combinations(all_keys, 2))
+print(combinations)
 def save_current_front(input_dictionary):
     
     
@@ -198,8 +203,9 @@ def save_current_front(input_dictionary):
     )
 
     np.save("frontier_results/set_{2}/iteration_{3}/{0}_{1}".format(obj1, obj2, input_dictionary["run"], input_dictionary["iteration"]), {"frontier":frontier})
+Path(os.path.join(directory, "frontier_results","set_{0}".format(run))).mkdir(parents=True, exist_ok=True)
     
-for i in range(100):
+for i in range(200):
     parameters, trial_index = ax_client.get_next_trial()
     # Local evaluation here can be replaced with deployment to external system.
    
@@ -209,6 +215,7 @@ for i in range(100):
     #print("pre_saving")
     np.save("frontier_results/set_{1}/exp_iteration_{0}.npy".format(i, run), {"saved_frontier":ax_client})
     if i>non_para_iterations:
+        Path(os.path.join(directory, "frontier_results","set_{0}".format(run), "iteration_{0}".format(i))).mkdir(parents=True, exist_ok=True)
         with executor.batch():
             for j in range(0, len(combinations)):
                 save_dict={}

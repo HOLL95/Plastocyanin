@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+#SBATCH --job-name=ax_submission              # Job name
+#SBATCH --ntasks=1                      # Number of MPI tasks to request
+#SBATCH --cpus-per-task=30               # Number of CPU cores per MPI task
+#SBATCH --mem=8G                        # Total memory to request
+#SBATCH --time=0-48:00:00               # Time limit (DD-HH:MM:SS)
+#SBATCH --account=chem-electro-2024        # Project account to use
+#SBATCH --mail-type=END,FAIL            # Mail events (NONE, BEGIN, END, FAIL, ALL)
+#SBATCH --mail-user=hll537@york.ac.uk   # Where to send mail
+#SBATCH --output=slurm_logs/%x-%j.log
+#SBATCH --error=slurm_logs/%x-%j.err
+#SBATCH --array=0-5                   # Array ran
+
+
+# Abort if any command fails
+
+set -e
+
+
+python ax_tests.py $SLURM_ARRAY_TASK_ID
+
+
